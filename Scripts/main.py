@@ -1,6 +1,4 @@
 # Главный файл проекта
 
-from backend.utils import hello_world
-
 if __name__ == "__main__":
-    hello_world()
+    pass
