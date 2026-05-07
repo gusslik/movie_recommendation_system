@@ -2,3 +2,4 @@
 __pycache__/
 Graphics/
 Output/
+*.csv
