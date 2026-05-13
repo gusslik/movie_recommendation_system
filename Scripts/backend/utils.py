@@ -65,8 +65,16 @@ def convert_to_3nf(raw: dict) -> dict:
     tags: pd.DataFrame = tags_raw
     tags["tagId"] = range(1, len(tags_raw) + 1)
 
-    print(movie_genre) 
-
     
+    db = {
+        "users": users,
+        "movies": movies,
+        "genres": genres,
+        "movie-genre": movie_genre,
+        "ratings": ratings,
+        "tags": tags 
+    }
+
+    return db
     
 convert_to_3nf(load_data_csv(DATA_DIR_PATH))
