@@ -3,7 +3,7 @@ from os import path, getcwd
 
 DATA_DIR_PATH = path.join(getcwd(), "Data")
 
-#Формирует DataFrame-ы с сырыми данными из csv файлов в папке Data/
+# Формирует DataFrame-ы с сырыми данными из csv файлов в папке Data/
 def load_data_csv(filepath: str) -> dict:
     FILEPATH_MOVIES_CSV = path.join(filepath, 'movies.csv')
     FILEPATH_RATINGS_CSV = path.join(filepath, 'ratings.csv')
@@ -76,5 +76,3 @@ def convert_to_3nf(raw: dict) -> dict:
     }
 
     return db
-    
-convert_to_3nf(load_data_csv(DATA_DIR_PATH))
