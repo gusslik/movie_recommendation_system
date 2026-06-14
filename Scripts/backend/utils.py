@@ -1,7 +1,33 @@
 import pandas as pd
-from os import path, getcwd
+from os import path, getcwd, getenv, remove
+import requests
+import zipfile
+from dotenv import load_dotenv
 
-DATA_DIR_PATH = path.join(getcwd(), "Data")
+load_dotenv()
+
+
+ORIGIN_DATASET_URL = getenv("ORIGIN_DATASET_URL")
+ARCHIVE_NAME = getenv("ARCHIVE_NAME")
+
+# Путь до директории с датасетом
+DATA_DIR_PATH = path.join(getcwd(), "Data", ARCHIVE_NAME)
+
+# Скачивает csv файлы, обращаясь по url
+def fetch_csv(filepath: str, url: str):
+    print("Идет скачивание архива...")
+    res = requests.get(url)
+
+    archive_name = "archive.zip"
+    with open(archive_name, "wb") as archive:
+        archive.write(res.content)
+
+    print("Распаковка архива...")
+    with zipfile.ZipFile(archive_name, "r") as zip:
+        zip.extractall(filepath)    
+
+    print("Архив распакован...")
+    remove(archive_name)
 
 # Формирует DataFrame-ы с сырыми данными из csv файлов в папке Data/
 def load_data_csv(filepath: str) -> dict:
