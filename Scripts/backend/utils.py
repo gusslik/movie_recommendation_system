@@ -173,4 +173,4 @@ def delete_rating(db: dict, rating_id: int) -> bool:
 
     print(f"Оценка с ID {rating_id} успешно удалена")
 
-    return True
+    return True 
