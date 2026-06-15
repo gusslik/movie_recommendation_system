@@ -7,11 +7,11 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Callable
 
 from Scripts.config import save_config
-from Scripts.database import DB
+from Scripts.dataframe_db import DataFrameDB
 
 
 class CrudWindow(tk.Toplevel):
-    def __init__(self, master: tk.Tk, db: DB, table: str) -> None:
+    def __init__(self, master: tk.Tk, db: DataFrameDB, table: str) -> None:
         super().__init__(master)
         self.db = db
         self.table = table
@@ -62,7 +62,7 @@ class CrudWindow(tk.Toplevel):
 
 
 class MovieApp(tk.Tk):
-    def __init__(self, db: DB, config: ConfigParser, paths: dict[str, Path]) -> None:
+    def __init__(self, db: DataFrameDB, config: ConfigParser, paths: dict[str, Path]) -> None:
         super().__init__()
         self.db = db
         self.config_data = config
@@ -70,6 +70,11 @@ class MovieApp(tk.Tk):
         self.current_photo = None
         self.is_fullscreen = False
         self.current_section = "dashboard"
+        self.mock_recommendations = [
+            {"title": "The Shawshank Redemption", "year": "1994", "genres": "Drama", "reason": "Высокий рейтинг у похожих пользователей"},
+            {"title": "The Godfather", "year": "1972", "genres": "Crime, Drama", "reason": "Вам понравились похожие фильмы"},
+            {"title": "Pulp Fiction", "year": "1994", "genres": "Crime, Drama", "reason": "Популярно среди ваших друзей"},
+        ]
 
         ui = config["ui"]
         self.title(ui["title"])
