@@ -3,7 +3,7 @@
 import pandas as pd
 import os
 import pickle
-from Library.config_loader import load_config
+from config_loader import load_config
 
 
 def get_project_root():
@@ -152,3 +152,5 @@ def load_binary(filepath):
         raise FileNotFoundError(f"Файл {filepath} не найден")
     with open(filepath, 'rb') as f:
         return pickle.load(f)
+
+load_ratings()
