@@ -9,9 +9,12 @@ load_dotenv()
 
 ORIGIN_DATASET_URL = getenv("ORIGIN_DATASET_URL")
 ARCHIVE_NAME = getenv("ARCHIVE_NAME")
+USERS_DATASET_URL = getenv("USERS_DATASET_URL")
+USERS_ARCHIVE_NAME = getenv("USERS_ARCHIVE_NAME")
 
 # Путь до директории с датасетом
 DATA_DIR_PATH = path.join(getcwd(), "Data", ARCHIVE_NAME)
+USERS_DATA_DIR_PATH = path.join(getcwd(), "Data", USERS_ARCHIVE_NAME)
 
 # Скачивает csv файлы, обращаясь по url
 def fetch_csv(filepath: str, url: str):
@@ -46,6 +49,29 @@ def load_data_csv(filepath: str) -> dict:
     }
 
     return raw
+
+# Загружает дополнительные данные пользователей из ml-100k датасета
+def load_users_data(filepath: str) -> pd.DataFrame:
+    """
+    Загружает информацию о пользователях из датасета ml-100k.
+    Файл u.user содержит: user_id | age | gender | occupation | zip_code
+    """
+    FILEPATH_USERS = path.join(filepath, 'u.user')
+
+    if not path.exists(FILEPATH_USERS):
+        print(f"Файл {FILEPATH_USERS} не найден, пропускаем загрузку данных пользователей")
+        return None
+
+    # Загружаем данные с разделителем '|'
+    users_df = pd.read_csv(
+        FILEPATH_USERS,
+        sep='|',
+        names=['userId', 'age', 'gender', 'occupation', 'zip_code'],
+        encoding='latin-1'
+    )
+
+    print(f"Загружено {len(users_df)} пользователей с демографическими данными")
+    return users_df
 
 # Форматирует сырые данные из load_data_csv и формирует таблицы в 3нф
 def convert_to_3nf(raw: dict) -> dict:

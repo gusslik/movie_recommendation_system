@@ -12,7 +12,11 @@ from Scripts.bootstrap import bootstrap_environment
 from Scripts.config import load_config
 from Scripts.dataframe_db import DataFrameDB
 from Scripts.gui.app import MovieApp
-from Scripts.backend.utils import DATA_DIR_PATH, ORIGIN_DATASET_URL, fetch_csv, load_data_csv, convert_to_3nf
+from Scripts.backend.utils import (
+    DATA_DIR_PATH, ORIGIN_DATASET_URL,
+    USERS_DATA_DIR_PATH, USERS_DATASET_URL,
+    fetch_csv, load_data_csv, convert_to_3nf, load_users_data
+)
 from Library.file_lib import save_db, load_db
 from os import path
 
@@ -42,6 +46,20 @@ def run() -> None:
         # Преобразуем в 3НФ
         print("Преобразование данных в 3НФ...")
         movielens_data = convert_to_3nf(raw_data)
+
+        # Загружаем дополнительные данные пользователей из ml-100k
+        if not path.exists(USERS_DATA_DIR_PATH):
+            print("Датасет пользователей ml-100k не найден. Начинаю загрузку...")
+            parent_dir = path.dirname(USERS_DATA_DIR_PATH)
+            fetch_csv(parent_dir, USERS_DATASET_URL)
+
+        # Загружаем демографические данные пользователей
+        print("Загрузка демографических данных пользователей...")
+        users_demographics = load_users_data(USERS_DATA_DIR_PATH)
+
+        # Добавляем данные пользователей в основную структуру (опционально)
+        if users_demographics is not None:
+            movielens_data['users_demographics'] = users_demographics
 
         # Сохраняем обработанные данные
         print("Сохранение обработанных данных в кэш...")
