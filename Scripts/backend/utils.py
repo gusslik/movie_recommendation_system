@@ -102,3 +102,68 @@ def convert_to_3nf(raw: dict) -> dict:
     }
 
     return db
+
+def add_new_user(db: dict) -> int:
+    users = db["users"]
+
+    new_user_id = users["userId"].max() + 1
+
+    if new_user_id in users["userId"].values:
+        raise ValueError(f"Пользователь с ID {new_user_id} уже существует")
+    
+    new_user = pd.DataFrame({"userId": [new_user_id]})
+
+    db["users"] = pd.concat([users, new_user], ignore_index=True)
+
+    print(f"Пользователь с ID {new_user_id} успешно добавлен")
+    
+    return new_user_id
+
+def delete_user(db: dict, user_id: int) -> bool:
+    users = db["users"]
+    
+    if user_id not in users["userId"].values:
+        raise ValueError(f"Пользователь с ID {user_id} не найден")
+
+    db["users"] = users[users["userId"] != user_id]
+    db["ratings"] = db["ratings"][db["ratings"]["userId"] != user_id]
+    db["tags"] = db["tags"][db["tags"]["userId"] != user_id]
+
+    print(f"Пользователь с ID {user_id} успешно удален")
+
+    return True
+
+def add_new_rating(db: dict, user_id: int, movie_id: int, rating: float) -> bool:
+    if(rating < 0 or rating > 5):
+        raise ValueError(f"Оценка фильам должна быть в диапозоне значений 0-5")
+    
+    ratings = db["ratings"]
+    
+    if user_id not in ratings["userId"].values:
+        raise ValueError(f"Пользователь с ID {user_id} не найден")
+    
+    if movie_id not in ratings["movieId"].values:
+        raise ValueError(f"Пользователь с ID {user_id} не найден")
+    
+    new_rating_id = ratings["ratingId"].max() + 1
+
+    if new_rating_id in ratings["ratingId"].values:
+        raise ValueError(f"Оценка с ID {new_rating_id} уже существует")
+
+    new_rating = pd.DataFrame({
+        "ratingId": [new_rating_id],
+        "userId": [user_id],
+        "movieId": [movie_id],
+        "rating": [rating]
+    })
+
+    db["ratings"] = pd.concat([ratings, new_rating], ignore_index=True)
+
+    print(f"Оценка с ID {new_rating_id} успешно добавлена")
+
+    return True
+
+db = convert_to_3nf(load_data_csv(path.join(DATA_DIR_PATH, ARCHIVE_NAME)))
+print(db["ratings"])
+add_new_rating(db, 1, 1, 3)
+print(db["ratings"])
