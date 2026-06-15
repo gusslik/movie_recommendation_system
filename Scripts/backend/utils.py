@@ -34,7 +34,7 @@ def load_data_csv(filepath: str) -> dict:
     FILEPATH_MOVIES_CSV = path.join(filepath, 'movies.csv')
     FILEPATH_RATINGS_CSV = path.join(filepath, 'ratings.csv')
     FILEPATH_TAGS_CSV = path.join(filepath, 'tags.csv')
-    
+
     movies_csv_raw = pd.read_csv(FILEPATH_MOVIES_CSV)
     ratings_csv_raw = pd.read_csv(FILEPATH_RATINGS_CSV)
     tags_csv_raw = pd.read_csv(FILEPATH_TAGS_CSV)
@@ -91,7 +91,7 @@ def convert_to_3nf(raw: dict) -> dict:
     tags: pd.DataFrame = tags_raw[["userId", "movieId", "tag"]]
     tags["tagId"] = range(1, len(tags_raw) + 1)
 
-    
+
     db = {
         "users": users,
         "movies": movies,
