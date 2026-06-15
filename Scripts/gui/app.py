@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import tkinter as tk
+import pandas as pd
 from configparser import ConfigParser
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable
+from PIL import Image, ImageTk
 
 from Scripts.config import save_config
 from Scripts.dataframe_db import DataFrameDB
+from Scripts.backend.recommendations_adapter import get_recommendations_from_db
+from Scripts.reports_generator import generate_all_reports
 
 
 class CrudWindow(tk.Toplevel):
@@ -70,11 +74,10 @@ class MovieApp(tk.Tk):
         self.current_photo = None
         self.is_fullscreen = False
         self.current_section = "dashboard"
-        self.mock_recommendations = [
-            {"title": "The Shawshank Redemption", "year": "1994", "genres": "Drama", "reason": "Высокий рейтинг у похожих пользователей"},
-            {"title": "The Godfather", "year": "1972", "genres": "Crime, Drama", "reason": "Вам понравились похожие фильмы"},
-            {"title": "Pulp Fiction", "year": "1994", "genres": "Crime, Drama", "reason": "Популярно среди ваших друзей"},
-        ]
+
+        # Создаём нового пользователя приложения (не из датасета)
+        self.app_user_id = self._create_app_user()
+        self.recommendations_cache = None  # Кэш рекомендаций
 
         ui = config["ui"]
         self.title(ui["title"])
@@ -163,7 +166,16 @@ class MovieApp(tk.Tk):
 
         ttk.Separator(left).pack(fill="x", padx=8, pady=10)
         ttk.Label(left, text="Панель управления").pack(anchor="w", padx=8, pady=(0, 8))
+
+        # Показываем ID текущего пользователя
+        user_info = ttk.Frame(left)
+        user_info.pack(fill="x", padx=8, pady=4)
+        ttk.Label(user_info, text="Ваш ID:", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        self.user_id_label = ttk.Label(user_info, text=f"#{self.app_user_id}", font=("Segoe UI", 10))
+        self.user_id_label.pack(anchor="w", pady=(2, 0))
+
         ttk.Button(left, text="Регистрация пользователя", command=self.register_user).pack(fill="x", padx=8, pady=4)
+        ttk.Button(left, text="Сгенерировать отчёты", command=self.generate_reports).pack(fill="x", padx=8, pady=4)
         ttk.Button(left, text="Открыть текстовые отчёты", command=lambda: self.show_reports("output")).pack(fill="x", padx=8, pady=4)
         ttk.Button(left, text="Открыть графические отчёты", command=lambda: self.show_reports("graphics")).pack(fill="x", padx=8, pady=4)
 
@@ -195,9 +207,23 @@ class MovieApp(tk.Tk):
         self.status = ttk.Label(self, text="", relief="sunken", anchor="w")
         self.status.pack(fill="x", side="bottom")
 
+    def _create_app_user(self) -> int:
+        """Создаёт нового пользователя приложения (не из датасета)"""
+        users_df = self.db.data['users']
+
+        # Находим максимальный ID и создаём нового пользователя
+        max_user_id = users_df['userId'].max() if len(users_df) > 0 else 0
+        new_user_id = max_user_id + 1
+
+        new_user = pd.DataFrame([{'userId': new_user_id}])
+        self.db.data['users'] = pd.concat([users_df, new_user], ignore_index=True)
+
+        print(f"Создан пользователь приложения с ID: {new_user_id}")
+        return new_user_id
+
     def _refresh_status(self) -> None:
         movies, users = self.db.stats()
-        self.status.config(text=f"Фильмов: {movies}    Пользователей: {users}    База загружена")
+        self.status.config(text=f"Фильмов: {movies}    Пользователей: {users}    Ваш ID: {self.app_user_id}")
 
     def _set_text_content(self, title: str, body: str) -> None:
         self.current_section = "text"
@@ -228,6 +254,32 @@ class MovieApp(tk.Tk):
     def register_user(self) -> None:
         """Заглушка для регистрации пользователя - будет реализовано позже"""
         pass
+
+    def generate_reports(self) -> None:
+        """Генерирует все отчёты (текстовые и графические)"""
+        try:
+            self.status.config(text="Генерация отчётов...")
+            self.update()
+
+            generate_all_reports(
+                self.db,
+                self.paths['output'],
+                self.paths['graphics']
+            )
+
+            messagebox.showinfo(
+                "Отчёты созданы",
+                "Все отчёты успешно сгенерированы!\n\n"
+                "Текстовые отчёты: Output/\n"
+                "Графические отчёты: Graphics/"
+            )
+            self.status.config(text="Отчёты успешно созданы")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось создать отчёты:\n{str(e)}")
+            self.status.config(text="Ошибка при создании отчётов")
+            print(f"Ошибка генерации отчётов: {e}")
+            import traceback
+            traceback.print_exc()
 
     def show_dashboard(self) -> None:
         self.current_section = "dashboard"
@@ -346,15 +398,48 @@ class MovieApp(tk.Tk):
     def show_recommendations(self) -> None:
         self.current_section = "recommendations"
         self.content_title.config(text="Рекомендации")
-        self.content_subtitle.config(text="Пока используются mock-карточки, но сценарий уже похож на реальную выдачу")
+
+        # Загружаем рекомендации, если ещё не загружены
+        if self.recommendations_cache is None:
+            self.content_subtitle.config(text="Загрузка рекомендаций...")
+            self.update()
+
+            try:
+                self.recommendations_cache = get_recommendations_from_db(
+                    self.db,
+                    self.app_user_id,
+                    top_n=5,
+                    method='user'
+                )
+                if not self.recommendations_cache:
+                    self.recommendations_cache = []
+                    self.content_subtitle.config(text="Не удалось загрузить рекомендации")
+                else:
+                    self.content_subtitle.config(text=f"Персональные рекомендации")
+            except Exception as e:
+                print(f"Ошибка загрузки рекомендаций: {e}")
+                self.recommendations_cache = []
+                self.content_subtitle.config(text="Ошибка при загрузке рекомендаций")
+        else:
+            self.content_subtitle.config(text=f"Персональные рекомендации")
+
         self._render_recommendation_feed()
         self.content_text.config(state="normal")
         self.content_text.delete("1.0", "end")
-        self.content_text.insert(
-            "1.0",
-            "На этом экране будут показываться карточки фильмов, которые можно лайкнуть или скрыть. "
-            "Сейчас это демонстрационный набор, который помогает отладить UI-поток без готового бэкенда.",
-        )
+
+        if self.recommendations_cache:
+            self.content_text.insert(
+                "1.0",
+                "Рекомендации на основе анализа ваших оценок и предпочтений похожих пользователей. "
+                "Лайкайте фильмы, чтобы улучшить качество рекомендаций.",
+            )
+        else:
+            self.content_text.insert(
+                "1.0",
+                "К сожалению, сейчас нет доступных рекомендаций. "
+                "Попробуйте оценить несколько фильмов, чтобы система могла подобрать персональные рекомендации.",
+            )
+
         self.content_text.config(state="disabled")
         self.image_label.config(image="")
 
@@ -382,7 +467,20 @@ class MovieApp(tk.Tk):
 
     def _render_recommendation_feed(self) -> None:
         self._clear_cards()
-        for idx, movie in enumerate(self.mock_recommendations):
+
+        # Используем реальные рекомендации или показываем пустое состояние
+        recommendations = self.recommendations_cache if self.recommendations_cache else []
+
+        if not recommendations:
+            # Показываем сообщение, если нет рекомендаций
+            card = ttk.Frame(self.cards_area, padding=12, relief="ridge")
+            card.grid(row=0, column=0, padx=6, sticky="nsew")
+            ttk.Label(card, text="Нет рекомендаций", font=("Segoe UI", 11, "bold")).pack(anchor="w")
+            ttk.Label(card, text="Попробуйте оценить несколько фильмов", wraplength=220).pack(anchor="w", pady=(4, 0))
+            self.cards_area.columnconfigure(0, weight=1)
+            return
+
+        for idx, movie in enumerate(recommendations):
             card = ttk.Frame(self.cards_area, padding=12, relief="ridge")
             card.grid(row=0, column=idx, padx=6, sticky="nsew")
             ttk.Label(card, text=movie["title"], font=("Segoe UI", 11, "bold")).pack(anchor="w")
@@ -392,13 +490,72 @@ class MovieApp(tk.Tk):
             buttons.pack(anchor="w")
             ttk.Button(buttons, text="Лайк", command=lambda m=movie: self._handle_recommendation_action(m, "like")).pack(side="left", padx=(0, 6))
             ttk.Button(buttons, text="Скрыть", command=lambda m=movie: self._handle_recommendation_action(m, "hide")).pack(side="left")
-        for idx in range(max(1, len(self.mock_recommendations))):
+
+        for idx in range(max(1, len(recommendations))):
             self.cards_area.columnconfigure(idx, weight=1)
 
     def _handle_recommendation_action(self, movie: dict, action: str) -> None:
         action_label = "лайкнули" if action == "like" else "скрыли"
-        self.content_subtitle.config(text=f"Последнее действие: {action_label} {movie['title']}")
-        self.status.config(text=f"{movie['title']} -> {action_label}")
+        movie_title = movie['title']
+
+        try:
+            # Добавляем оценку в базу данных
+            if action == "like":
+                self._add_rating(self.app_user_id, movie['movieId'], 5.0)
+                message = f"Добавлена оценка 5.0 для фильма '{movie_title}'"
+            else:
+                self._add_rating(self.app_user_id, movie['movieId'], 1.0)
+                message = f"Фильм '{movie_title}' скрыт из рекомендаций"
+
+            # Удаляем фильм из кэша рекомендаций
+            if self.recommendations_cache:
+                self.recommendations_cache = [
+                    rec for rec in self.recommendations_cache
+                    if rec['movieId'] != movie['movieId']
+                ]
+
+            # Обновляем интерфейс
+            self.content_subtitle.config(text=f"✓ {message}")
+            self.status.config(text=f"{movie_title} → {action_label}")
+
+            # Перерисовываем карточки рекомендаций
+            self._render_recommendation_feed()
+
+            # Если рекомендации закончились, загружаем новые
+            if not self.recommendations_cache:
+                self.content_subtitle.config(text="Загрузка новых рекомендаций...")
+                self.recommendations_cache = None
+                self.after(500, self.show_recommendations)
+
+        except Exception as e:
+            self.content_subtitle.config(text=f"Ошибка: {str(e)}")
+            print(f"Ошибка при обработке действия: {e}")
+
+    def _add_rating(self, user_id: int, movie_id: int, rating: float) -> None:
+        """Добавляет новую оценку в базу данных"""
+        ratings_df = self.db.data['ratings']
+
+        # Проверяем, не оценивал ли пользователь этот фильм ранее
+        existing = ratings_df[
+            (ratings_df['userId'] == user_id) &
+            (ratings_df['movieId'] == movie_id)
+        ]
+
+        if not existing.empty:
+            # Обновляем существующую оценку
+            ratings_df.loc[existing.index, 'rating'] = rating
+        else:
+            # Создаём новую оценку
+            new_rating_id = ratings_df['ratingId'].max() + 1 if len(ratings_df) > 0 else 1
+
+            new_rating = pd.DataFrame([{
+                'ratingId': new_rating_id,
+                'userId': user_id,
+                'movieId': movie_id,
+                'rating': rating
+            }])
+
+            self.db.data['ratings'] = pd.concat([ratings_df, new_rating], ignore_index=True)
 
     def _show_reports_placeholder(self) -> None:
         self._set_text_body(
@@ -437,17 +594,31 @@ class MovieApp(tk.Tk):
     def _show_image(self, path: Path) -> None:
         self.content_title.config(text=f"Графический отчёт: {path.name}")
         suffix = path.suffix.lower()
-        if suffix not in {".png", ".gif"}:
-            self._set_text_content("Графический отчёт", f"Формат {suffix} не поддерживается встроенным просмотром Tkinter.\nФайл: {path}")
+        if suffix not in {".png", ".gif", ".jpg", ".jpeg"}:
+            self._set_text_content("Графический отчёт", f"Формат {suffix} не поддерживается.\nФайл: {path}")
             self.image_label.config(image="")
             return
         try:
-            photo = tk.PhotoImage(file=str(path))
+            # Используем PIL для загрузки изображения
+            img = Image.open(path)
+
+            # Масштабируем изображение, если оно слишком большое
+            max_width = 1000
+            max_height = 600
+            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+
+            # Конвертируем в PhotoImage
+            photo = ImageTk.PhotoImage(img)
             self.current_photo = photo
             self.image_label.config(image=photo)
-            self._set_text_content("Графический отчёт", f"Открыт файл: {path.name}")
-        except tk.TclError as err:
-            self._set_text_content("Ошибка изображения", str(err))
+
+            # Скрываем текстовое поле и показываем изображение
+            self.content_text.pack_forget()
+            self.image_label.pack(fill="both", expand=True, padx=12, pady=12)
+
+        except Exception as err:
+            self._set_text_content("Ошибка изображения", f"Не удалось загрузить изображение:\n{str(err)}")
+            self.image_label.config(image="")
 
     def show_settings(self) -> None:
         win = tk.Toplevel(self)
