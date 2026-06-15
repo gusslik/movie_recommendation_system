@@ -230,6 +230,11 @@ class MovieApp(tk.Tk):
         self.content_title.config(text=title)
         self.content_subtitle.config(text="")
         self._clear_cards()
+
+        # Скрываем изображение и показываем текстовое поле
+        self.image_label.pack_forget()
+        self.content_text.pack(fill="both", expand=True)
+
         self.content_text.config(state="normal")
         self.content_text.delete("1.0", "end")
         self.content_text.insert("1.0", body)
