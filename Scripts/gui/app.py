@@ -85,8 +85,11 @@ class MovieApp(tk.Tk):
         self._bind_hotkeys()
         self._refresh_status()
 
-        # Разворачиваем окно на весь экран (для macOS)
-        self.state('zoomed')  # Максимизация окна на текущем экране
+        # Максимизация окна (кроссплатформенно)
+        try:
+            self.state('zoomed')  # Windows/macOS
+        except tk.TclError:
+            self.attributes('-zoomed', True)  # Linux
 
     def _build_menu(self) -> None:
         menubar = tk.Menu(self)
