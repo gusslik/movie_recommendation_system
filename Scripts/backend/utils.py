@@ -163,7 +163,14 @@ def add_new_rating(db: dict, user_id: int, movie_id: int, rating: float) -> bool
 
     return True
 
-db = convert_to_3nf(load_data_csv(path.join(DATA_DIR_PATH, ARCHIVE_NAME)))
-print(db["ratings"])
-add_new_rating(db, 1, 1, 3)
-print(db["ratings"])
+def delete_rating(db: dict, rating_id: int) -> bool:
+    ratings = db["ratings"]
+    
+    if rating_id not in ratings["ratingId"].values:
+        raise ValueError(f"Оценка с ID {rating_id} не найдена")
+
+    db["ratings"] = ratings[ratings["ratingId"] != rating_id]
+
+    print(f"Оценка с ID {rating_id} успешно удалена")
+
+    return True
