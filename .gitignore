@@ -7,3 +7,4 @@ Data/*
 *.env
 *.zip
 Scripts/app_settings.ini
+.DS_Store
