@@ -257,8 +257,28 @@ class MovieApp(tk.Tk):
             self.cards_area.columnconfigure(idx, weight=1)
 
     def register_user(self) -> None:
-        """Заглушка для регистрации пользователя - будет реализовано позже"""
-        pass
+        """Регистрирует нового пользователя в системе"""
+        try:
+            from Scripts.backend.utils import add_new_user
+
+            # Добавляем нового пользователя
+            new_user_id = add_new_user(self.db.data)
+
+            # Показываем уведомление
+            messagebox.showinfo(
+                "Успешно",
+                f"Новый пользователь зарегистрирован!\n\nID пользователя: {new_user_id}\n\n"
+                f"Теперь этот пользователь может оценивать фильмы и получать рекомендации."
+            )
+
+            # Обновляем статус
+            self._refresh_status()
+
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось зарегистрировать пользователя:\n{str(e)}")
+            print(f"Ошибка регистрации: {e}")
+            import traceback
+            traceback.print_exc()
 
     def generate_reports(self) -> None:
         """Генерирует все отчёты (текстовые и графические)"""
