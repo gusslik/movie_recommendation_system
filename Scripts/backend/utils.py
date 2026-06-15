@@ -69,10 +69,10 @@ def convert_to_3nf(raw: dict) -> dict:
 
     genres = pd.DataFrame({
         "genreId": range(1, len(genres_split) + 1),
-        "genres": sorted(genres_split)
+        "genreName": sorted(genres_split)
     })
 
-    genre_map = dict(zip(genres["genres"], genres["genreId"]))
+    genre_map = dict(zip(genres["genreName"], genres["genreId"]))
 
     movie_genre_rows = []
 
@@ -85,10 +85,10 @@ def convert_to_3nf(raw: dict) -> dict:
 
     movie_genre = pd.DataFrame(movie_genre_rows)
 
-    ratings: pd.DataFrame = ratings_raw
+    ratings: pd.DataFrame = ratings_raw[["userId", "movieId", "rating"]]
     ratings["ratingId"] = range(1, len(ratings_raw) + 1)
 
-    tags: pd.DataFrame = tags_raw
+    tags: pd.DataFrame = tags_raw[["userId", "movieId", "tag"]]
     tags["tagId"] = range(1, len(tags_raw) + 1)
 
     
