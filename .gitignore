@@ -1,5 +1,10 @@
-.venv/
 __pycache__/
 Graphics/
 Output/
+Data/*
+.venv/
 *.csv
+*.env
+*.zip
+Scripts/app_settings.ini
+.DS_Store
