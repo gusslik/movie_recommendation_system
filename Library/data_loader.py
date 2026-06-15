@@ -55,7 +55,6 @@ def load_movies():
         )
     return pd.read_csv(file_path)
 
-
 def load_users():
     """
     Загружает справочник пользователей.
@@ -71,8 +70,15 @@ def load_users():
     """
     file_name = CONFIG["DATABASE_USERS_FILE"]
     file_path = os.path.join(DATA_DIR, file_name)
+
+    raw_filepath = os.path.join(DATA_DIR, "ml-100k", "u.user")
+    
+    if os.path.exists(raw_filepath):
+        os.rename(raw_filepath, file_path)
+
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Файл {file_path} не найден")
+
     df = pd.read_csv(file_path, sep='|', header=None,
                      names=['userId', 'age', 'gender', 'occupation', 'zip'])
     df['age'] = pd.to_numeric(df['age'], errors='coerce')
@@ -152,5 +158,5 @@ def load_binary(filepath):
         raise FileNotFoundError(f"Файл {filepath} не найден")
     with open(filepath, 'rb') as f:
         return pickle.load(f)
-
-load_ratings()
+    
+load_users()
