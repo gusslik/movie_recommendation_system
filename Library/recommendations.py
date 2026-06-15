@@ -86,7 +86,7 @@ def get_user_based_recommendations(user_id, user_item_matrix,
 
     if not recs:
         if ratings_df is None:
-            from library.data_loader import load_all_data
+            from data_loader import load_all_data
             _, _, ratings_df = load_all_data()
         return get_popular_movies(ratings_df, movies_df, top_n)
 
@@ -144,7 +144,7 @@ def get_item_based_recommendations(user_id, user_item_matrix, item_sim_matrix,
             scores[sim_movie] = scores.get(sim_movie, 0.0) + sim * user_ratings[movie]
 
     if not scores:
-        from library.data_loader import load_all_data
+        from data_loader import load_all_data
         _, _, ratings = load_all_data()
         return get_popular_movies(ratings, movies_df, top_n)
 
@@ -227,7 +227,7 @@ def get_recommendations(user_id: int, top_n: int = 5,
         Gordeeva Anastasia
     """
     try:
-        from library.data_loader import load_all_data
+        from data_loader import load_all_data
         movies, _, ratings = load_all_data()
     except Exception as e:
         print(f"Ошибка загрузки данных: {e}")
