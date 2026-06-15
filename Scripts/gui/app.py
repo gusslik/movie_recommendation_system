@@ -396,7 +396,6 @@ class MovieApp(tk.Tk):
         action_label = "лайкнули" if action == "like" else "скрыли"
         self.content_subtitle.config(text=f"Последнее действие: {action_label} {movie['title']}")
         self.status.config(text=f"{movie['title']} -> {action_label}")
-        messagebox.showinfo("Действие сохранено", f"Вы {action_label} фильм {movie['title']}.")
 
     def _show_reports_placeholder(self) -> None:
         self._set_text_body(
