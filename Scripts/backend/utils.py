@@ -6,12 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 ORIGIN_DATASET_URL = getenv("ORIGIN_DATASET_URL")
+USERS_DATASET_URL = getenv("USERS_DATASET_URL")
 ARCHIVE_NAME = getenv("ARCHIVE_NAME")
 
 # Путь до директории с датасетом
-DATA_DIR_PATH = path.join(getcwd(), "Data", ARCHIVE_NAME)
+DATA_DIR_PATH = path.join(getcwd(), "Data")
 
 # Скачивает csv файлы, обращаясь по url
 def fetch_csv(filepath: str, url: str):
@@ -29,7 +29,7 @@ def fetch_csv(filepath: str, url: str):
     print("Архив распакован...")
     remove(archive_name)
 
-# Формирует DataFrame-ы с сырыми данными из csv файлов в папке Data/
+# Формирует DataFrame-ы с сырыми данными из csv файлов в папке Data/<archive_name>
 def load_data_csv(filepath: str) -> dict:
     FILEPATH_MOVIES_CSV = path.join(filepath, 'movies.csv')
     FILEPATH_RATINGS_CSV = path.join(filepath, 'ratings.csv')
